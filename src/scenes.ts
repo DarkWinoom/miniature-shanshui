@@ -42,6 +42,7 @@ export interface SceneDefinition {
   overviewTitle: string;
   storyButtonLabel: string;
   modelPath: string;
+  materialTreatment?: "weathered";
   shadowExclude: readonly string[];
   lighting: Readonly<Record<Theme, LightingProfile>>;
   views: readonly SceneView[];
@@ -62,6 +63,7 @@ export const scenes: readonly SceneDefinition[] = [
     overviewTitle: "双坊相望",
     storyButtonLabel: "走近双坊",
     modelPath: "models/jinma-biji.glb",
+    materialTreatment: "weathered",
     shadowExclude: [
       "grass stems", "ridge carving", "carved relief", "carved surface", "glazed tiles",
       "Chiselled relief", "fine painted edges", "botanical relief", "herbaceous planting",
