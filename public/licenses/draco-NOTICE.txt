@@ -1,0 +1,10 @@
+Draco 3D Data Compression decoder files
+
+The build bundles Draco decoder files from three.js under the Apache License,
+Version 2.0. A copy of that license is included in draco-Apache-2.0.txt.
+
+Source project: https://github.com/google/draco
+Bundled from: three.js examples/jsm/libs/draco
+https://github.com/mrdoob/three.js/tree/master/examples/jsm/libs/draco
+
+These decoder files have not been modified by Miniature ShanShui.
