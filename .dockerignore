@@ -1,0 +1,7 @@
+.agents-docs/
+.git/
+.github/
+node_modules/
+dist/
+.pnpm-store/
+*.log
