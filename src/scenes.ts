@@ -25,7 +25,7 @@ export interface StorySource {
 export interface LightingProfile {
   ambient: { color: string; intensity: number };
   hemisphere: { sky: string; ground: string; intensity: number };
-  key: { color: string; intensity: number; position: readonly [number, number, number] };
+  key: { color: string; intensity: number; position: readonly [number, number, number]; castShadow: boolean; shadowIntensity: number };
   fill: { color: string; intensity: number; position: readonly [number, number, number] };
   accent: { color: string; intensity: number; distance: number };
   exposure: number;
@@ -42,6 +42,7 @@ export interface SceneDefinition {
   overviewTitle: string;
   storyButtonLabel: string;
   modelPath: string;
+  shadowExclude: readonly string[];
   posters: Readonly<Record<Theme, string>>;
   lighting: Readonly<Record<Theme, LightingProfile>>;
   views: readonly SceneView[];
@@ -62,26 +63,31 @@ export const scenes: readonly SceneDefinition[] = [
     overviewTitle: "双坊相望",
     storyButtonLabel: "走近双坊",
     modelPath: "models/jinma-biji.glb",
+    shadowExclude: [
+      "grass stems", "ridge carving", "carved relief", "carved surface", "glazed tiles",
+      "Chiselled relief", "fine painted edges", "botanical relief", "herbaceous planting",
+      "staggered individual slabs", "pavement detail", "granite inlay", "diorama base"
+    ],
     posters: {
       day: "images/jinma-biji-day.png",
       night: "images/jinma-biji-night.png"
     },
     lighting: {
       day: {
-        ambient: { color: "#fff7e7", intensity: 0.38 },
-        hemisphere: { sky: "#e9f2f1", ground: "#95a5a0", intensity: 0.72 },
-        key: { color: "#ffe1ae", intensity: 1.3, position: [16, 30, 20] },
-        fill: { color: "#c8deeb", intensity: 0.48, position: [-18, 15, -9] },
+        ambient: { color: "#fff6e9", intensity: 0.27 },
+        hemisphere: { sky: "#e7f0ef", ground: "#96a8a2", intensity: 0.62 },
+        key: { color: "#ffe8bf", intensity: 1.7, position: [-22, 28, 16], castShadow: true, shadowIntensity: 0.64 },
+        fill: { color: "#cbdde8", intensity: 0.36, position: [17, 12, -12] },
         accent: { color: "#ffbf75", intensity: 0, distance: 24 },
-        exposure: 0.9
+        exposure: 0.93
       },
       night: {
-        ambient: { color: "#90acc3", intensity: 0.24 },
-        hemisphere: { sky: "#9abbd1", ground: "#2c3f4a", intensity: 0.6 },
-        key: { color: "#93b2cf", intensity: 0.5, position: [12, 25, 18] },
-        fill: { color: "#f1bc79", intensity: 0.65, position: [-14, 13, 10] },
-        accent: { color: "#ffc178", intensity: 18, distance: 20 },
-        exposure: 1
+        ambient: { color: "#809bb0", intensity: 0.16 },
+        hemisphere: { sky: "#86a9c0", ground: "#263e47", intensity: 0.4 },
+        key: { color: "#8fb1ca", intensity: 0.12, position: [12, 25, 18], castShadow: false, shadowIntensity: 0 },
+        fill: { color: "#a9bbc0", intensity: 0.16, position: [-15, 13, 9] },
+        accent: { color: "#ffc38a", intensity: 26, distance: 24 },
+        exposure: 1.02
       }
     },
     views: [

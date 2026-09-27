@@ -8,6 +8,7 @@ import {
   HemisphereLight,
   Material,
   Mesh,
+  PCFSoftShadowMap,
   PerspectiveCamera,
   PointLight,
   Scene,
@@ -41,7 +42,7 @@ export class ModelViewer {
   private readonly hemisphere = new HemisphereLight();
   private readonly key = new DirectionalLight();
   private readonly fill = new DirectionalLight();
-  private accents: PointLight[] = [];
+  private accents: { light: PointLight; viewId: string }[] = [];
   private readonly resizeObserver: ResizeObserver;
   private readonly reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   private model: Group | null = null;
@@ -62,6 +63,9 @@ export class ModelViewer {
     this.renderer.outputColorSpace = SRGBColorSpace;
     this.renderer.toneMapping = ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.15;
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = PCFSoftShadowMap;
+    this.renderer.shadowMap.autoUpdate = false;
     this.renderer.domElement.setAttribute("aria-label", "可拖动旋转的金马碧鸡坊三维模型");
     this.host.append(this.renderer.domElement);
 
@@ -79,7 +83,7 @@ export class ModelViewer {
       this.pauseRotation();
     });
 
-    this.scene.add(this.ambient, this.hemisphere, this.key, this.fill);
+    this.scene.add(this.ambient, this.hemisphere, this.key, this.key.target, this.fill, this.fill.target);
     this.draco.setWorkerLimit(2);
     this.loader.setDRACOLoader(this.draco);
     this.resizeObserver = new ResizeObserver(() => this.resize());
@@ -105,10 +109,11 @@ export class ModelViewer {
     }
     this.model = gltf.scene;
     this.renderer.domElement.setAttribute("aria-label", `可拖动旋转的${definition.title}三维模型`);
+    this.prepareSunShadow(definition);
     this.scene.add(this.model);
     this.placeAccentLights();
-    this.setTheme(this.theme);
     this.setView(this.view, true);
+    this.setTheme(this.theme);
     onProgress?.(1);
   }
 
@@ -123,17 +128,20 @@ export class ModelViewer {
     this.hemisphere.intensity = profile.hemisphere.intensity;
     this.key.color.set(profile.key.color);
     this.key.intensity = profile.key.intensity;
-    this.key.position.set(...profile.key.position);
+    this.key.position.copy(this.key.target.position).add(new Vector3(...profile.key.position));
+    this.key.castShadow = profile.key.castShadow;
+    this.key.shadow.intensity = profile.key.shadowIntensity;
     this.fill.color.set(profile.fill.color);
     this.fill.intensity = profile.fill.intensity;
-    this.fill.position.set(...profile.fill.position);
-    for (const accent of this.accents) {
-      accent.color.set(profile.accent.color);
-      accent.intensity = profile.accent.intensity;
-      accent.distance = profile.accent.distance;
+    this.fill.position.copy(this.fill.target.position).add(new Vector3(...profile.fill.position));
+    for (const { light } of this.accents) {
+      light.color.set(profile.accent.color);
+      light.intensity = profile.accent.intensity;
+      light.distance = profile.accent.distance;
     }
     this.renderer.toneMappingExposure = profile.exposure;
     this.updateAccentVisibility();
+    if (profile.key.castShadow) this.renderer.shadowMap.needsUpdate = true;
     if (this.model) this.renderer.render(this.scene, this.camera);
   }
 
@@ -146,6 +154,7 @@ export class ModelViewer {
     if (!focus) throw new Error(`Model group not found: ${view.nodeMatch}`);
     for (const child of this.model.children) child.visible = view.nodeMatch ? child === focus : true;
     this.updateAccentVisibility();
+    if (this.key.castShadow) this.renderer.shadowMap.needsUpdate = true;
 
     const bounds = new Box3().setFromObject(focus);
     const center = bounds.getCenter(new Vector3());
@@ -213,6 +222,7 @@ export class ModelViewer {
     this.disposeModel();
     this.controls.dispose();
     this.draco.dispose();
+    this.key.shadow.dispose();
     this.renderer.dispose();
     this.renderer.domElement.remove();
   }
@@ -257,31 +267,65 @@ export class ModelViewer {
     if (this.model && this.view) this.setView(this.view, true);
   }
 
+  private prepareSunShadow(definition: SceneDefinition): void {
+    if (!this.model) return;
+    const bounds = new Box3().setFromObject(this.model);
+    const center = bounds.getCenter(new Vector3());
+    const size = bounds.getSize(new Vector3());
+    const radius = size.length() * 0.56;
+    this.key.target.position.copy(center);
+    this.fill.target.position.copy(center);
+    this.key.shadow.mapSize.set(this.host.clientWidth < 700 ? 1024 : 2048, this.host.clientWidth < 700 ? 1024 : 2048);
+    this.key.shadow.camera.left = -radius;
+    this.key.shadow.camera.right = radius;
+    this.key.shadow.camera.top = radius;
+    this.key.shadow.camera.bottom = -radius;
+    this.key.shadow.camera.near = 0.5;
+    this.key.shadow.camera.far = size.length() * 2.5;
+    this.key.shadow.camera.updateProjectionMatrix();
+    this.key.shadow.normalBias = 0.015;
+    this.key.shadow.bias = -0.0002;
+    const exclusions = definition.shadowExclude.map(term => term.toLowerCase());
+    this.model.traverse(child => {
+      if (!(child instanceof Mesh)) return;
+      const name = child.name.toLowerCase();
+      child.castShadow = !exclusions.some(term => name.includes(term));
+      child.receiveShadow = true;
+    });
+  }
+
   private placeAccentLights(): void {
     if (!this.model || !this.definition) return;
-    for (const light of this.accents) this.scene.remove(light);
+    for (const { light } of this.accents) this.scene.remove(light);
     const groups = this.definition.views.filter(view => view.nodeMatch);
-    this.accents = groups.map(() => new PointLight());
-    this.scene.add(...this.accents);
-    groups.forEach((view, index) => {
+    this.accents = [];
+    groups.forEach(view => {
       const group = this.model?.children.find(child => child.name.includes(view.nodeMatch!));
-      if (!group || !this.accents[index]) return;
-      const center = new Box3().setFromObject(group).getCenter(new Vector3());
-      this.accents[index].position.copy(center).add(new Vector3(1.8, 1.5, 4.5));
+      if (!group) return;
+      const bounds = new Box3().setFromObject(group);
+      const center = bounds.getCenter(new Vector3());
+      const size = bounds.getSize(new Vector3());
+      for (const side of [-1, 1]) {
+        const light = new PointLight();
+        light.position.copy(center).add(new Vector3(size.x * side * 0.28, -size.y * 0.18, size.z * 0.6));
+        this.scene.add(light);
+        this.accents.push({ light, viewId: view.id });
+      }
     });
   }
 
   private updateAccentVisibility(): void {
     if (!this.definition || !this.view) return;
-    const groups = this.definition.views.filter(view => view.nodeMatch);
-    this.accents.forEach((light, index) => {
-      light.visible = this.view?.id === this.definition?.views[0].id || this.view?.id === groups[index]?.id;
+    this.accents.forEach(({ light, viewId }) => {
+      light.visible = this.theme === "night" && (this.view?.id === this.definition?.views[0].id || this.view?.id === viewId);
     });
   }
 
   private disposeModel(): void {
     if (!this.model) return;
     this.scene.remove(this.model);
+    for (const { light } of this.accents) this.scene.remove(light);
+    this.accents = [];
     this.releaseGroup(this.model);
     this.model = null;
   }
