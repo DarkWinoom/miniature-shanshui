@@ -1,5 +1,5 @@
 import "./styles.css";
-import { scenes, type SceneDefinition, type SceneView, type Theme } from "./scenes";
+import { assetUrl, scenes, type SceneDefinition, type SceneView, type Theme } from "./scenes";
 import type { ModelViewer } from "./viewer";
 
 const appElement = document.querySelector<HTMLDivElement>("#app");
@@ -37,11 +37,14 @@ function pageMarkup(scene: SceneDefinition, view: SceneView, theme: Theme): stri
       <p>${escapeHtml(section.body)}</p>
     </div>`).join("");
   const sources = scene.sources.map(source => `<a href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.label)} ↗</a>`).join("");
-  const catalog = scenes.map(item => `
+  const catalog = scenes.map(item => {
+    const cover = item.cover ? `<picture><source type="image/avif" data-srcset="${escapeHtml(assetUrl(item.cover.avifPath))}"><img data-src="${escapeHtml(assetUrl(item.cover.webpPath))}" alt="" loading="lazy" decoding="async"></picture>` : "";
+    return `
     <button class="catalog-card" type="button" data-scene="${escapeHtml(item.id)}" aria-label="查看 ${escapeHtml(item.title)}">
-      <span class="catalog-cover" aria-hidden="true"><span class="catalog-landscape"></span><span class="catalog-cover-number">${escapeHtml(item.id.slice(-2))}</span></span>
+      <span class="catalog-cover" aria-hidden="true"><span class="catalog-landscape"></span>${cover}<span class="catalog-cover-number">${escapeHtml(item.id.slice(-2))}</span></span>
       <span class="catalog-caption"><strong><small>${escapeHtml(item.city)}</small>${escapeHtml(item.title)}</strong><b>${escapeHtml(item.id.slice(-2))}</b></span>
-    </button>`).join("");
+    </button>`;
+  }).join("");
 
   return `
     <div class="page">
@@ -320,6 +323,16 @@ function mountScene(scene: SceneDefinition): void {
     if (drawer) closeDrawer(false);
     drawer = panel;
     drawerTrigger = trigger;
+    if (panel === catalogBackdrop) panel.querySelectorAll<HTMLImageElement>("img[data-src]").forEach(image => {
+      const source = image.parentElement?.querySelector<HTMLSourceElement>("source[data-srcset]");
+      if (source) {
+        source.srcset = source.dataset.srcset || "";
+        source.removeAttribute("data-srcset");
+      }
+      image.addEventListener("load", () => image.classList.add("is-loaded"), { once: true });
+      image.src = image.dataset.src || "";
+      image.removeAttribute("data-src");
+    });
     panel.classList.add("is-open");
     panel.setAttribute("aria-hidden", "false");
     document.body.style.overflow = "hidden";

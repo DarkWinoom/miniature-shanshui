@@ -42,6 +42,7 @@ export interface SceneDefinition {
   overviewTitle: string;
   storyButtonLabel: string;
   modelPath: string;
+  cover?: { avifPath: string; webpPath: string };
   materialTreatment?: "weathered" | "toon";
   shadowExclude: readonly string[];
   lighting: Readonly<Record<Theme, LightingProfile>>;
@@ -63,6 +64,7 @@ export const scenes: readonly SceneDefinition[] = [
     overviewTitle: "双坊相望",
     storyButtonLabel: "走近双坊",
     modelPath: "models/jinma-biji.glb",
+    cover: { avifPath: "covers/jinma-biji.avif", webpPath: "covers/jinma-biji.webp" },
     materialTreatment: "toon",
     shadowExclude: [
       "grass stems", "ridge carving", "carved relief", "carved surface", "glazed tiles",
