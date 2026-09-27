@@ -134,6 +134,7 @@ export class ModelViewer {
     }
     this.renderer.toneMappingExposure = profile.exposure;
     this.updateAccentVisibility();
+    if (this.model) this.renderer.render(this.scene, this.camera);
   }
 
   setView(view: SceneView, immediate = false): void {
@@ -148,23 +149,26 @@ export class ModelViewer {
 
     const bounds = new Box3().setFromObject(focus);
     const center = bounds.getCenter(new Vector3());
+    const targetOffset = this.host.clientWidth < 700 ? view.mobileTargetOffset || view.targetOffset : view.targetOffset;
+    const target = center.clone().add(new Vector3(...(targetOffset || [0, 0, 0])));
     const size = bounds.getSize(new Vector3());
     const halfFov = (this.camera.fov * Math.PI) / 360;
     const tangent = Math.tan(halfFov);
     const aspect = Math.max(this.camera.aspect, 0.35);
+    const mobileMargin = this.host.clientWidth < 700 ? (view.nodeMatch ? 0.9 : 1.25) : 1;
     const distance = Math.max(
       size.y / (2 * tangent),
       size.x / (2 * tangent * aspect),
       size.z / (2 * tangent)
-    ) * view.distanceScale + size.length() * 0.1;
+    ) * view.distanceScale * mobileMargin + size.length() * 0.1;
     const offset = new Vector3(...view.cameraOffset).normalize().multiplyScalar(distance);
-    const position = center.clone().add(offset);
+    const position = target.clone().add(offset);
     this.controls.minDistance = distance * 0.46;
     this.controls.maxDistance = distance * 2.4;
     if (immediate || this.reducedMotion.matches) {
       this.tween = null;
       this.camera.position.copy(position);
-      this.controls.target.copy(center);
+      this.controls.target.copy(target);
       this.controls.update();
       return;
     }
@@ -173,7 +177,7 @@ export class ModelViewer {
       fromPosition: this.camera.position.clone(),
       toPosition: position,
       fromTarget: this.controls.target.clone(),
-      toTarget: center
+      toTarget: target
     };
   }
 
@@ -263,7 +267,7 @@ export class ModelViewer {
       const group = this.model?.children.find(child => child.name.includes(view.nodeMatch!));
       if (!group || !this.accents[index]) return;
       const center = new Box3().setFromObject(group).getCenter(new Vector3());
-      this.accents[index].position.copy(center).add(new Vector3(2.2, 5.5, 2.5));
+      this.accents[index].position.copy(center).add(new Vector3(1.8, 1.5, 4.5));
     });
   }
 

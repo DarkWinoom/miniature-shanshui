@@ -5,6 +5,8 @@ export interface SceneView {
   label: string;
   nodeMatch?: string;
   cameraOffset: readonly [number, number, number];
+  targetOffset?: readonly [number, number, number];
+  mobileTargetOffset?: readonly [number, number, number];
   distanceScale: number;
   posters?: Readonly<Record<Theme, string>>;
 }
@@ -66,30 +68,30 @@ export const scenes: readonly SceneDefinition[] = [
     },
     lighting: {
       day: {
-        ambient: { color: "#fff7e7", intensity: 0.9 },
-        hemisphere: { sky: "#e9f2f1", ground: "#95a5a0", intensity: 1.55 },
-        key: { color: "#ffe1ae", intensity: 2.5, position: [16, 30, 20] },
-        fill: { color: "#c8deeb", intensity: 1.1, position: [-18, 15, -9] },
+        ambient: { color: "#fff7e7", intensity: 0.38 },
+        hemisphere: { sky: "#e9f2f1", ground: "#95a5a0", intensity: 0.72 },
+        key: { color: "#ffe1ae", intensity: 1.3, position: [16, 30, 20] },
+        fill: { color: "#c8deeb", intensity: 0.48, position: [-18, 15, -9] },
         accent: { color: "#ffbf75", intensity: 0, distance: 24 },
-        exposure: 1.15
+        exposure: 0.9
       },
       night: {
-        ambient: { color: "#90acc3", intensity: 0.48 },
-        hemisphere: { sky: "#9abbd1", ground: "#2c3f4a", intensity: 0.86 },
-        key: { color: "#93b2cf", intensity: 0.8, position: [12, 25, 18] },
-        fill: { color: "#f1bc79", intensity: 1.3, position: [-14, 13, 10] },
-        accent: { color: "#ffc178", intensity: 95, distance: 24 },
-        exposure: 1.05
+        ambient: { color: "#90acc3", intensity: 0.24 },
+        hemisphere: { sky: "#9abbd1", ground: "#2c3f4a", intensity: 0.6 },
+        key: { color: "#93b2cf", intensity: 0.5, position: [12, 25, 18] },
+        fill: { color: "#f1bc79", intensity: 0.65, position: [-14, 13, 10] },
+        accent: { color: "#ffc178", intensity: 18, distance: 20 },
+        exposure: 1
       }
     },
     views: [
-      { id: "all", label: "双坊", cameraOffset: [0.34, 0.72, 1.28], distanceScale: 1.15 },
+      { id: "all", label: "双坊", cameraOffset: [0.34, 0.72, 1.28], targetOffset: [0, -7, 0], mobileTargetOffset: [0, -2, 0], distanceScale: 1.05 },
       {
         id: "jinma",
         label: "金马坊",
         nodeMatch: "JINMA",
         cameraOffset: [0, 0.32, 1],
-        distanceScale: 1.15,
+        distanceScale: 1.2,
         posters: { day: "images/jinma-day.png", night: "images/jinma-night.png" }
       },
       {
@@ -97,7 +99,7 @@ export const scenes: readonly SceneDefinition[] = [
         label: "碧鸡坊",
         nodeMatch: "BIJI",
         cameraOffset: [0, 0.32, 1],
-        distanceScale: 1.15,
+        distanceScale: 1.2,
         posters: { day: "images/biji-day.png", night: "images/biji-night.png" }
       }
     ],

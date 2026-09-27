@@ -322,7 +322,9 @@ function mountScene(scene: SceneDefinition): void {
     panel.classList.add("is-open");
     panel.setAttribute("aria-hidden", "false");
     document.body.style.overflow = "hidden";
-    panel.querySelector<HTMLButtonElement>(".story-close")?.focus();
+    requestAnimationFrame(() => {
+      if (drawer === panel) panel.querySelector<HTMLButtonElement>(".story-close")?.focus();
+    });
   }
 
   function closeDrawer(restoreFocus = true): void {
