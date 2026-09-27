@@ -8,7 +8,6 @@ export interface SceneView {
   targetOffset?: readonly [number, number, number];
   mobileTargetOffset?: readonly [number, number, number];
   distanceScale: number;
-  posters?: Readonly<Record<Theme, string>>;
 }
 
 export interface StorySection {
@@ -28,6 +27,7 @@ export interface LightingProfile {
   key: { color: string; intensity: number; position: readonly [number, number, number]; castShadow: boolean; shadowIntensity: number };
   fill: { color: string; intensity: number; position: readonly [number, number, number] };
   accent: { color: string; intensity: number; distance: number };
+  plaque: { color: string; intensity: number; distance: number };
   exposure: number;
 }
 
@@ -43,7 +43,6 @@ export interface SceneDefinition {
   storyButtonLabel: string;
   modelPath: string;
   shadowExclude: readonly string[];
-  posters: Readonly<Record<Theme, string>>;
   lighting: Readonly<Record<Theme, LightingProfile>>;
   views: readonly SceneView[];
   storyLead: string;
@@ -68,10 +67,6 @@ export const scenes: readonly SceneDefinition[] = [
       "Chiselled relief", "fine painted edges", "botanical relief", "herbaceous planting",
       "staggered individual slabs", "pavement detail", "granite inlay", "diorama base"
     ],
-    posters: {
-      day: "images/jinma-biji-day.png",
-      night: "images/jinma-biji-night.png"
-    },
     lighting: {
       day: {
         ambient: { color: "#fff6e9", intensity: 0.27 },
@@ -79,6 +74,7 @@ export const scenes: readonly SceneDefinition[] = [
         key: { color: "#ffe8bf", intensity: 1.7, position: [-22, 28, 16], castShadow: true, shadowIntensity: 0.64 },
         fill: { color: "#cbdde8", intensity: 0.36, position: [17, 12, -12] },
         accent: { color: "#ffbf75", intensity: 0, distance: 24 },
+        plaque: { color: "#ffbf75", intensity: 0, distance: 14 },
         exposure: 0.93
       },
       night: {
@@ -87,6 +83,7 @@ export const scenes: readonly SceneDefinition[] = [
         key: { color: "#8fb1ca", intensity: 0.12, position: [12, 25, 18], castShadow: false, shadowIntensity: 0 },
         fill: { color: "#a9bbc0", intensity: 0.16, position: [-15, 13, 9] },
         accent: { color: "#ffc38a", intensity: 26, distance: 24 },
+        plaque: { color: "#ffd5a0", intensity: 22, distance: 14 },
         exposure: 1.02
       }
     },
@@ -97,16 +94,14 @@ export const scenes: readonly SceneDefinition[] = [
         label: "金马坊",
         nodeMatch: "JINMA",
         cameraOffset: [0, 0.32, 1],
-        distanceScale: 1.2,
-        posters: { day: "images/jinma-day.png", night: "images/jinma-night.png" }
+        distanceScale: 1.2
       },
       {
         id: "biji",
         label: "碧鸡坊",
         nodeMatch: "BIJI",
         cameraOffset: [0, 0.32, 1],
-        distanceScale: 1.2,
-        posters: { day: "images/biji-day.png", night: "images/biji-night.png" }
+        distanceScale: 1.2
       }
     ],
     storyLead: "一东一西，两坊相望。金瓦、青绿斗拱与石柱，把昆明熟悉的街口收进一方微缩景观。",

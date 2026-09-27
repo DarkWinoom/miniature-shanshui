@@ -1,5 +1,5 @@
 import "./styles.css";
-import { assetUrl, scenes, type SceneDefinition, type SceneView, type Theme } from "./scenes";
+import { scenes, type SceneDefinition, type SceneView, type Theme } from "./scenes";
 import type { ModelViewer } from "./viewer";
 
 const appElement = document.querySelector<HTMLDivElement>("#app");
@@ -25,9 +25,6 @@ const escapeHtml = (value: string): string => value.replace(/[&<>"']/g, characte
   "'": "&#39;"
 })[character] || character);
 
-const posterFor = (scene: SceneDefinition, view: SceneView, theme: Theme): string =>
-  assetUrl(view.posters?.[theme] || scene.posters[theme]);
-
 const stageLabel = (scene: SceneDefinition, view: SceneView, theme: Theme): string =>
   `${view.label} · ${scene.captions[theme]}`;
 
@@ -42,7 +39,7 @@ function pageMarkup(scene: SceneDefinition, view: SceneView, theme: Theme): stri
   const sources = scene.sources.map(source => `<a href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.label)} ↗</a>`).join("");
   const catalog = scenes.map(item => `
     <button class="catalog-card" type="button" data-scene="${escapeHtml(item.id)}" aria-label="查看 ${escapeHtml(item.title)}">
-      <span class="catalog-cover"><img src="${assetUrl(item.posters.day)}" alt="" /></span>
+      <span class="catalog-cover" aria-hidden="true"><span class="catalog-landscape"></span><span class="catalog-cover-number">${escapeHtml(item.id.slice(-2))}</span></span>
       <span class="catalog-caption"><strong><small>${escapeHtml(item.city)}</small>${escapeHtml(item.title)}</strong><b>${escapeHtml(item.id.slice(-2))}</b></span>
     </button>`).join("");
 
@@ -71,12 +68,23 @@ function pageMarkup(scene: SceneDefinition, view: SceneView, theme: Theme): stri
             <button type="button" data-theme="day" aria-pressed="${theme === "day"}">日游</button>
             <button type="button" data-theme="night" aria-pressed="${theme === "night"}">夜游</button>
           </div>
-          <img class="model-art" id="poster" src="${posterFor(scene, view, theme)}" alt="${escapeHtml(scene.title)}模型效果预览" />
           <div class="model-viewport" id="model-viewport"></div>
-          <div class="loading-status" id="loading-status" role="status" aria-live="polite">载入微景中…</div>
+          <div class="loading-scene" id="loading-scene" data-state="loading">
+            <svg class="loading-art" viewBox="0 0 360 190" fill="none" aria-hidden="true">
+              <path class="loading-mountain-fill loading-back-fill" d="M29 126c25-4 42-35 63-43 16-6 24 17 41 15 20-2 30-49 52-55 22-5 38 37 59 40 17 2 25-18 43-16 22 2 39 36 48 59v26H29z" />
+              <path class="loading-mountain-fill loading-front-fill" d="M25 137c24 2 45-22 67-22 17 0 33 18 53 17 25-2 35-29 59-27 18 2 28 20 49 20 23 0 40-17 61-9 10 4 17 13 23 21v18H25z" />
+              <path class="loading-ridge loading-ridge-back" d="M29 126c25-4 42-35 63-43 16-6 24 17 41 15 20-2 30-49 52-55 22-5 38 37 59 40 17 2 25-18 43-16 22 2 39 36 48 59" />
+              <path class="loading-ridge loading-ridge-front" d="M25 137c24 2 45-22 67-22 17 0 33 18 53 17 25-2 35-29 59-27 18 2 28 20 49 20 23 0 40-17 61-9 10 4 17 13 23 21" />
+              <path class="loading-water loading-water-one" d="M54 151c42 7 88 7 130 0 40-6 85-6 125 0" />
+              <path class="loading-water loading-water-two" d="M85 165c33 4 65 4 98 0 33-4 66-4 99 0" />
+              <ellipse class="loading-ripple" cx="182" cy="175" rx="56" ry="6" />
+            </svg>
+            <strong>微缩山水</strong>
+            <span class="loading-status" id="loading-status" role="status" aria-live="polite">微景渐次成形…</span>
+            <button class="retry-model" id="retry-model" type="button" hidden>重新载入</button>
+          </div>
           <div class="view-switch" role="group" aria-label="观看视图"><span class="switch-glider" aria-hidden="true"></span>${views}</div>
           <div class="viewer-tools">
-            <button class="tool-button" id="rotate-button" type="button" aria-label="暂停自动旋转" aria-pressed="true" title="暂停自动旋转" disabled>⟳</button>
             <button class="tool-button" id="reset-button" type="button" aria-label="复位视角" title="复位视角" disabled>↺</button>
             <button class="tool-button" id="expand-view" type="button" aria-label="沉浸观景" aria-pressed="false" title="沉浸观景">⤢</button>
           </div>
@@ -138,17 +146,19 @@ function mountScene(scene: SceneDefinition): void {
   };
   const viewerElement = find<HTMLElement>("#viewer");
   const viewport = find<HTMLElement>("#model-viewport");
-  const poster = find<HTMLImageElement>("#poster");
+  const loadingScene = find<HTMLElement>("#loading-scene");
   const loading = find<HTMLElement>("#loading-status");
+  const retryButton = find<HTMLButtonElement>("#retry-model");
   const stageTitle = find<HTMLElement>("#stage-title");
   const asideTitle = find<HTMLElement>("#aside-title");
-  const rotateButton = find<HTMLButtonElement>("#rotate-button");
+  const resetButton = find<HTMLButtonElement>("#reset-button");
   const expandButton = find<HTMLButtonElement>("#expand-view");
   const storyBackdrop = find<HTMLElement>("#story-backdrop");
   const catalogBackdrop = find<HTMLElement>("#catalog-backdrop");
   let drawer: HTMLElement | null = null;
   let drawerTrigger: HTMLElement | null = null;
   let modelReady = false;
+  let activeViewId = currentView.id;
   let viewRequest = 0;
   let viewExitTimer = 0;
   let viewEnterTimer = 0;
@@ -201,18 +211,6 @@ function mountScene(scene: SceneDefinition): void {
     element.textContent = value;
   }
 
-  function setPoster(view: SceneView, theme: Theme): void {
-    poster.src = posterFor(scene, view, theme);
-    poster.alt = `${scene.title}·${view.label}${theme === "day" ? "日游" : "夜游"}效果预览`;
-  }
-
-  function setRotationState(active: boolean): void {
-    rotateButton.setAttribute("aria-pressed", String(active));
-    rotateButton.setAttribute("aria-label", active ? "暂停自动旋转" : "开启自动旋转");
-    rotateButton.title = active ? "暂停自动旋转" : "开启自动旋转";
-    rotateButton.classList.toggle("is-paused", !active);
-  }
-
   function cancelViewMotion(): void {
     ++viewRequest;
     window.clearTimeout(viewExitTimer);
@@ -225,6 +223,7 @@ function mountScene(scene: SceneDefinition): void {
     cancelViewMotion();
     if (reducedMotion.matches) {
       activeViewer.setView(next, true);
+      activeViewId = next.id;
       return;
     }
     const request = ++viewRequest;
@@ -235,6 +234,7 @@ function mountScene(scene: SceneDefinition): void {
     viewExitTimer = window.setTimeout(() => {
       if (signal.aborted || request !== viewRequest) return;
       activeViewer?.setView(next);
+      activeViewId = next.id;
       viewport.classList.remove("view-exit");
       viewport.classList.add("view-enter");
       viewEnterTimer = window.setTimeout(() => viewport.classList.remove("view-enter"), 500);
@@ -246,7 +246,6 @@ function mountScene(scene: SceneDefinition): void {
     currentTheme = theme;
     document.documentElement.dataset.theme = theme;
     selectButton(button, "[data-theme]");
-    setPoster(currentView, theme);
     activeViewer?.setTheme(theme);
     setText(stageTitle, stageLabel(scene, currentView, theme));
     setText(asideTitle, currentView.id === scene.views[0].id ? scene.overviewTitle : currentView.label);
@@ -258,7 +257,12 @@ function mountScene(scene: SceneDefinition): void {
     requestedTheme = theme;
     const request = ++themeRequest;
     cancelViewMotion();
-    if (modelReady) activeViewer?.setView(currentView, true);
+    if (modelReady && activeViewer) {
+      if (activeViewId !== currentView.id) {
+        activeViewer.setView(currentView, true);
+        activeViewId = currentView.id;
+      } else activeViewer.holdView();
+    }
     themeAnimation?.cancel();
     themeTransition?.skipTransition();
     themeAnimation = null;
@@ -266,9 +270,6 @@ function mountScene(scene: SceneDefinition): void {
     document.documentElement.classList.remove("theme-changing");
     if (theme === currentTheme) return;
 
-    const image = new Image();
-    image.src = posterFor(scene, currentView, theme);
-    await image.decode().catch(() => {});
     if (request !== themeRequest || signal.aborted) return;
 
     let applied = false;
@@ -369,18 +370,9 @@ function mountScene(scene: SceneDefinition): void {
     selectButton(button, "[data-view]");
     swapText(stageTitle, stageLabel(scene, next, currentTheme), direction);
     swapText(asideTitle, next.id === scene.views[0].id ? scene.overviewTitle : next.label, direction);
-    setPoster(next, currentTheme);
     showView(next, direction);
   }, { signal }));
-  rotateButton.addEventListener("click", () => {
-    if (!activeViewer || !modelReady) return;
-    setRotationState(activeViewer.setAutoRotation(!activeViewer.getAutoRotation()));
-  }, { signal });
-  reducedMotion.addEventListener("change", () => {
-    rotateButton.disabled = !modelReady || reducedMotion.matches;
-    if (reducedMotion.matches) setRotationState(false);
-  }, { signal });
-  find<HTMLButtonElement>("#reset-button").addEventListener("click", () => activeViewer?.resetView(), { signal });
+  resetButton.addEventListener("click", () => activeViewer?.resetView(), { signal });
   expandButton.addEventListener("click", () => toggleImmersive(), { signal });
   document.addEventListener("keydown", event => {
     if (event.key === "Escape") {
@@ -407,36 +399,45 @@ function mountScene(scene: SceneDefinition): void {
   const showFallback = (): void => {
     activeViewer?.dispose();
     activeViewer = null;
+    modelReady = false;
+    viewerElement.classList.remove("has-model");
     viewport.hidden = true;
-    loading.textContent = "当前无法显示 3D，已切换为效果图。";
-    setRotationState(false);
-    rotateButton.disabled = true;
-    find<HTMLButtonElement>("#reset-button").disabled = true;
+    loadingScene.hidden = false;
+    loadingScene.dataset.state = "error";
+    loading.textContent = "微景暂未成形，请重试载入。";
+    retryButton.hidden = false;
+    resetButton.disabled = true;
   };
 
   async function initializeViewer(): Promise<void> {
     try {
       const { ModelViewer } = await import("./viewer");
       if (signal.aborted) return;
-      const instance = new ModelViewer(viewport, active => setRotationState(active));
+      const instance = new ModelViewer(viewport);
       activeViewer = instance;
-      setRotationState(instance.getAutoRotation());
       await instance.load(scene, progress => {
-        loading.textContent = progress === null ? "载入微景中…" : `载入微景 ${Math.round(progress * 100)}%`;
+        loading.textContent = progress === null ? "微景渐次成形…" : `微景渐次成形 ${Math.round(progress * 100)}%`;
       });
       if (signal.aborted || activeViewer !== instance) return;
       modelReady = true;
-      rotateButton.disabled = reducedMotion.matches;
-      find<HTMLButtonElement>("#reset-button").disabled = false;
+      resetButton.disabled = false;
       instance.setTheme(currentTheme);
       instance.setView(currentView, true);
+      activeViewId = currentView.id;
       viewerElement.classList.add("has-model");
-      loading.hidden = true;
-      poster.classList.add("is-hidden");
+      loadingScene.hidden = true;
     } catch {
       if (!signal.aborted) showFallback();
     }
   }
+
+  retryButton.addEventListener("click", () => {
+    retryButton.hidden = true;
+    loadingScene.dataset.state = "loading";
+    loading.textContent = "微景渐次成形…";
+    viewport.hidden = false;
+    void initializeViewer();
+  }, { signal });
 
   void initializeViewer();
 }

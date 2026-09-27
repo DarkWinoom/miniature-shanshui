@@ -42,7 +42,7 @@ export class ModelViewer {
   private readonly hemisphere = new HemisphereLight();
   private readonly key = new DirectionalLight();
   private readonly fill = new DirectionalLight();
-  private accents: { light: PointLight; viewId: string }[] = [];
+  private nightLights: { light: PointLight; viewId: string; role: "accent" | "plaque" }[] = [];
   private readonly resizeObserver: ResizeObserver;
   private readonly reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   private model: Group | null = null;
@@ -56,7 +56,7 @@ export class ModelViewer {
   private autoRotationRequested = true;
   private disposed = false;
 
-  constructor(host: HTMLElement, private readonly onRotationChange?: (active: boolean) => void) {
+  constructor(host: HTMLElement) {
     this.host = host;
     this.renderer = new WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
     this.renderer.setClearColor(0x000000, 0);
@@ -111,7 +111,7 @@ export class ModelViewer {
     this.renderer.domElement.setAttribute("aria-label", `可拖动旋转的${definition.title}三维模型`);
     this.prepareSunShadow(definition);
     this.scene.add(this.model);
-    this.placeAccentLights();
+    this.placeNightLights();
     this.setView(this.view, true);
     this.setTheme(this.theme);
     onProgress?.(1);
@@ -134,13 +134,14 @@ export class ModelViewer {
     this.fill.color.set(profile.fill.color);
     this.fill.intensity = profile.fill.intensity;
     this.fill.position.copy(this.fill.target.position).add(new Vector3(...profile.fill.position));
-    for (const { light } of this.accents) {
-      light.color.set(profile.accent.color);
-      light.intensity = profile.accent.intensity;
-      light.distance = profile.accent.distance;
+    for (const { light, role } of this.nightLights) {
+      const settings = profile[role];
+      light.color.set(settings.color);
+      light.intensity = settings.intensity;
+      light.distance = settings.distance;
     }
     this.renderer.toneMappingExposure = profile.exposure;
-    this.updateAccentVisibility();
+    this.updateNightLightVisibility();
     if (profile.key.castShadow) this.renderer.shadowMap.needsUpdate = true;
     if (this.model) this.renderer.render(this.scene, this.camera);
   }
@@ -153,7 +154,7 @@ export class ModelViewer {
       : this.model;
     if (!focus) throw new Error(`Model group not found: ${view.nodeMatch}`);
     for (const child of this.model.children) child.visible = view.nodeMatch ? child === focus : true;
-    this.updateAccentVisibility();
+    this.updateNightLightVisibility();
     if (this.key.castShadow) this.renderer.shadowMap.needsUpdate = true;
 
     const bounds = new Box3().setFromObject(focus);
@@ -192,23 +193,17 @@ export class ModelViewer {
 
   resetView(): void {
     if (this.view) this.setView(this.view);
+    this.autoRotationRequested = !this.reducedMotion.matches;
+    this.controls.autoRotate = this.autoRotationRequested;
   }
 
-  pauseRotation(): void {
+  holdView(): void {
+    this.tween = null;
+  }
+
+  private pauseRotation(): void {
     this.autoRotationRequested = false;
     this.controls.autoRotate = false;
-    this.onRotationChange?.(false);
-  }
-
-  setAutoRotation(enabled: boolean): boolean {
-    this.autoRotationRequested = enabled;
-    this.controls.autoRotate = enabled && !this.reducedMotion.matches;
-    this.onRotationChange?.(this.controls.autoRotate);
-    return this.controls.autoRotate;
-  }
-
-  getAutoRotation(): boolean {
-    return this.controls.autoRotate;
   }
 
   dispose(): void {
@@ -234,7 +229,6 @@ export class ModelViewer {
   private readonly onMotionChange = (): void => {
     if (this.reducedMotion.matches) this.autoRotationRequested = false;
     this.controls.autoRotate = this.autoRotationRequested && !this.reducedMotion.matches;
-    this.onRotationChange?.(this.controls.autoRotate);
     if (this.reducedMotion.matches) this.tween = null;
   };
 
@@ -294,11 +288,11 @@ export class ModelViewer {
     });
   }
 
-  private placeAccentLights(): void {
+  private placeNightLights(): void {
     if (!this.model || !this.definition) return;
-    for (const { light } of this.accents) this.scene.remove(light);
+    for (const { light } of this.nightLights) this.scene.remove(light);
     const groups = this.definition.views.filter(view => view.nodeMatch);
-    this.accents = [];
+    this.nightLights = [];
     groups.forEach(view => {
       const group = this.model?.children.find(child => child.name.includes(view.nodeMatch!));
       if (!group) return;
@@ -309,14 +303,18 @@ export class ModelViewer {
         const light = new PointLight();
         light.position.copy(center).add(new Vector3(size.x * side * 0.28, -size.y * 0.18, size.z * 0.6));
         this.scene.add(light);
-        this.accents.push({ light, viewId: view.id });
+        this.nightLights.push({ light, viewId: view.id, role: "accent" });
       }
+      const plaque = new PointLight();
+      plaque.position.copy(center).add(new Vector3(0, size.y * 0.16, size.z * 0.72 + 1));
+      this.scene.add(plaque);
+      this.nightLights.push({ light: plaque, viewId: view.id, role: "plaque" });
     });
   }
 
-  private updateAccentVisibility(): void {
+  private updateNightLightVisibility(): void {
     if (!this.definition || !this.view) return;
-    this.accents.forEach(({ light, viewId }) => {
+    this.nightLights.forEach(({ light, viewId }) => {
       light.visible = this.theme === "night" && (this.view?.id === this.definition?.views[0].id || this.view?.id === viewId);
     });
   }
@@ -324,8 +322,8 @@ export class ModelViewer {
   private disposeModel(): void {
     if (!this.model) return;
     this.scene.remove(this.model);
-    for (const { light } of this.accents) this.scene.remove(light);
-    this.accents = [];
+    for (const { light } of this.nightLights) this.scene.remove(light);
+    this.nightLights = [];
     this.releaseGroup(this.model);
     this.model = null;
   }
