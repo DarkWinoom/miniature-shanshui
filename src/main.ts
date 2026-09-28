@@ -9,8 +9,7 @@ const app: HTMLDivElement = appElement;
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 let activeViewer: ModelViewer | null = null;
 let activeController: AbortController | null = null;
-let currentScene = scenes[0];
-let currentView = currentScene.views[0];
+let currentView = scenes[0].views[0];
 let currentTheme: Theme = "day";
 let themeRequest = 0;
 let requestedTheme: Theme = currentTheme;
@@ -135,7 +134,6 @@ function mountScene(scene: SceneDefinition): void {
   document.body.classList.remove("is-immersive");
   activeController = new AbortController();
   const signal = activeController.signal;
-  currentScene = scene;
   currentView = scene.views[0];
   requestedTheme = currentTheme;
   document.documentElement.dataset.theme = currentTheme;
@@ -281,9 +279,14 @@ function mountScene(scene: SceneDefinition): void {
       applied = true;
       applyTheme(theme, button);
     };
-    if (reducedMotion.matches || typeof document.startViewTransition !== "function") {
+    const applyWithoutTransition = () => {
       apply();
-      requestAnimationFrame(() => { if (request === themeRequest && !signal.aborted) document.documentElement.classList.remove("theme-changing"); });
+      requestAnimationFrame(() => {
+        if (request === themeRequest && !signal.aborted) document.documentElement.classList.remove("theme-changing");
+      });
+    };
+    if (reducedMotion.matches || typeof document.startViewTransition !== "function") {
+      applyWithoutTransition();
       return;
     }
 
@@ -294,8 +297,7 @@ function mountScene(scene: SceneDefinition): void {
     let transition: ViewTransition;
     try { transition = document.startViewTransition(apply); }
     catch {
-      apply();
-      requestAnimationFrame(() => { if (request === themeRequest && !signal.aborted) document.documentElement.classList.remove("theme-changing"); });
+      applyWithoutTransition();
       return;
     }
     themeTransition = transition;
@@ -455,4 +457,4 @@ function mountScene(scene: SceneDefinition): void {
   void initializeViewer();
 }
 
-mountScene(currentScene);
+mountScene(scenes[0]);

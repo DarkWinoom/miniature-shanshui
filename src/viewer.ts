@@ -21,7 +21,7 @@ import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { assetUrl, type SceneDefinition, type SceneView, type Theme } from "./scenes";
-import { applyToonMaterials, applyWeatheredMaterials } from "./materials";
+import { applyToonMaterials } from "./materials";
 
 interface CameraTween {
   start: number;
@@ -43,7 +43,7 @@ export class ModelViewer {
   private readonly hemisphere = new HemisphereLight();
   private readonly key = new DirectionalLight();
   private readonly fill = new DirectionalLight();
-  private nightLights: { light: PointLight; viewId: string; role: "accent" | "plaque" }[] = [];
+  private nightLights: { light: PointLight; viewId: string | null; role: "accent" | "plaque" }[] = [];
   private readonly resizeObserver: ResizeObserver;
   private readonly reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   private model: Group | null = null;
@@ -110,7 +110,6 @@ export class ModelViewer {
     }
     this.model = gltf.scene;
     this.renderer.domElement.setAttribute("aria-label", `可拖动旋转的${definition.title}三维模型`);
-    if (definition.materialTreatment === "weathered") applyWeatheredMaterials(this.model);
     if (definition.materialTreatment === "toon") applyToonMaterials(this.model);
     this.prepareSunShadow(definition);
     this.scene.add(this.model);
@@ -313,12 +312,18 @@ export class ModelViewer {
       this.scene.add(plaque);
       this.nightLights.push({ light: plaque, viewId: view.id, role: "plaque" });
     });
+    this.definition.nightFixtures?.forEach(fixture => {
+      const light = new PointLight();
+      light.position.set(...fixture.position);
+      this.scene.add(light);
+      this.nightLights.push({ light, viewId: fixture.viewId || null, role: fixture.role });
+    });
   }
 
   private updateNightLightVisibility(): void {
     if (!this.definition || !this.view) return;
     this.nightLights.forEach(({ light, viewId }) => {
-      light.visible = this.theme === "night" && (this.view?.id === this.definition?.views[0].id || this.view?.id === viewId);
+      light.visible = this.theme === "night" && (viewId === null || this.view?.id === this.definition?.views[0].id || this.view?.id === viewId);
     });
   }
 
