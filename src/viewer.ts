@@ -70,7 +70,7 @@ export class ModelViewer {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = PCFSoftShadowMap;
     this.renderer.shadowMap.autoUpdate = false;
-    this.renderer.domElement.setAttribute("aria-label", "可拖动旋转的金马碧鸡坊三维模型");
+    this.renderer.domElement.setAttribute("aria-label", "可拖动旋转的三维景观模型");
     this.host.append(this.renderer.domElement);
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
@@ -103,6 +103,7 @@ export class ModelViewer {
     this.disposeModel();
     this.definition = definition;
     this.view = definition.views[0];
+    this.renderer.domElement.setAttribute("aria-label", `可拖动旋转的${definition.title}三维模型`);
     const gltf = await this.loader.loadAsync(assetUrl(definition.modelPath), event => {
       if (loadId !== this.loadId) return;
       onProgress?.(event.total > 0 ? event.loaded / event.total : null);
@@ -112,7 +113,6 @@ export class ModelViewer {
       return;
     }
     this.model = gltf.scene;
-    this.renderer.domElement.setAttribute("aria-label", `可拖动旋转的${definition.title}三维模型`);
     if (definition.materialTreatment === "toon") applyToonMaterials(this.model);
     if (definition.water) this.water = new SceneWater(this.model, definition.water, this.host.clientWidth < 700);
     this.prepareSunShadow(definition);

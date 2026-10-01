@@ -1,3 +1,5 @@
+import { landscapeScene } from "./landscape";
+
 export type Theme = "day" | "night";
 
 export interface SceneView {
@@ -67,6 +69,7 @@ export interface SceneDefinition {
 }
 
 export const scenes: readonly SceneDefinition[] = [
+  landscapeScene,
   {
     id: "001",
     city: "昆明",
