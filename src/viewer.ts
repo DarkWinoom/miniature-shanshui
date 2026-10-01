@@ -24,6 +24,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { assetUrl, type SceneDefinition, type SceneView, type Theme } from "./scenes";
 import { applyToonMaterials } from "./materials";
 import { SceneWater } from "./water";
+import { SceneMist } from "./mist";
 
 interface CameraTween {
   start: number;
@@ -50,6 +51,7 @@ export class ModelViewer {
   private readonly reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   private model: Group | null = null;
   private water: SceneWater | null = null;
+  private mist: SceneMist | null = null;
   private definition: SceneDefinition | null = null;
   private view: SceneView | null = null;
   private theme: Theme = "day";
@@ -113,10 +115,14 @@ export class ModelViewer {
       return;
     }
     this.model = gltf.scene;
-    if (definition.materialTreatment === "toon") applyToonMaterials(this.model);
+    if (definition.materialTreatment === "toon") applyToonMaterials(this.model, definition.terrain);
     if (definition.water) this.water = new SceneWater(this.model, definition.water, this.host.clientWidth < 700);
     this.prepareSunShadow(definition);
     this.scene.add(this.model);
+    if (definition.mist) {
+      this.mist = new SceneMist(definition.mist);
+      this.scene.add(this.mist.group);
+    }
     this.placeNightLights();
     this.setView(this.view, true);
     this.setTheme(this.theme);
@@ -126,6 +132,7 @@ export class ModelViewer {
   setTheme(theme: Theme): void {
     this.theme = theme;
     this.water?.setTheme(theme);
+    this.mist?.setTheme(theme);
     if (!this.definition) return;
     const atmosphere = this.definition.atmosphere;
     this.scene.fog = atmosphere ? new Fog(atmosphere.color[theme], atmosphere.near, atmosphere.far) : null;
@@ -175,11 +182,12 @@ export class ModelViewer {
     const tangent = Math.tan(halfFov);
     const aspect = Math.max(this.camera.aspect, 0.35);
     const mobileMargin = this.host.clientWidth < 700 ? (view.nodeMatch ? 0.9 : 1.25) : 1;
+    const distanceScale = this.host.clientWidth < 700 ? view.mobileDistanceScale ?? view.distanceScale : view.distanceScale;
     const distance = Math.max(
       size.y / (2 * tangent),
       size.x / (2 * tangent * aspect),
       size.z / (2 * tangent)
-    ) * view.distanceScale * mobileMargin + size.length() * 0.1;
+    ) * distanceScale * mobileMargin + size.length() * 0.1;
     const offset = new Vector3(...view.cameraOffset).normalize().multiplyScalar(distance);
     const position = target.clone().add(offset);
     this.controls.minDistance = distance * 0.46;
@@ -255,6 +263,7 @@ export class ModelViewer {
       }
       this.controls.update(delta);
       this.water?.update(delta, !this.reducedMotion.matches);
+      this.mist?.update(delta, !this.reducedMotion.matches);
       this.renderer.render(this.scene, this.camera);
     }
     this.frameId = requestAnimationFrame(this.render);
@@ -339,6 +348,8 @@ export class ModelViewer {
     if (!this.model) return;
     this.water?.dispose();
     this.water = null;
+    this.mist?.dispose();
+    this.mist = null;
     this.scene.remove(this.model);
     for (const { light } of this.nightLights) this.scene.remove(light);
     this.nightLights = [];

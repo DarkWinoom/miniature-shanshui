@@ -10,6 +10,7 @@ export interface SceneView {
   targetOffset?: readonly [number, number, number];
   mobileTargetOffset?: readonly [number, number, number];
   distanceScale: number;
+  mobileDistanceScale?: number;
 }
 
 export interface StorySection {
@@ -44,6 +45,15 @@ export interface AtmosphereProfile {
   far: number;
 }
 
+export interface TerrainProfile {
+  nodeName: string;
+}
+
+export interface MistProfile {
+  color: Readonly<Record<Theme, string>>;
+  formations: readonly { position: readonly [number, number, number]; size: readonly [number, number]; density: number }[];
+}
+
 export interface SceneDefinition {
   id: string;
   city: string;
@@ -57,6 +67,8 @@ export interface SceneDefinition {
   modelPath: string;
   cover?: { avifPath: string; webpPath: string };
   materialTreatment?: "toon";
+  terrain?: TerrainProfile;
+  mist?: MistProfile;
   water?: WaterProfile;
   atmosphere?: AtmosphereProfile;
   shadowExclude: readonly string[];
