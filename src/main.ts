@@ -27,6 +27,8 @@ const escapeHtml = (value: string): string => value.replace(/[&<>"']/g, characte
 const stageLabel = (scene: SceneDefinition, view: SceneView, theme: Theme): string =>
   `${view.label} · ${scene.captions[theme]}`;
 
+const sceneNumber = (scene: SceneDefinition): string => String(scenes.indexOf(scene) + 1).padStart(2, "0");
+
 function pageMarkup(scene: SceneDefinition, view: SceneView, theme: Theme): string {
   const views = scene.views.map(item => `<button type="button" data-view="${escapeHtml(item.id)}" aria-pressed="${item.id === view.id}">${escapeHtml(item.label)}</button>`).join("");
   const story = scene.story.map((section, index) => `
@@ -40,8 +42,8 @@ function pageMarkup(scene: SceneDefinition, view: SceneView, theme: Theme): stri
     const cover = item.cover ? `<picture><source type="image/avif" data-srcset="${escapeHtml(assetUrl(item.cover.avifPath))}"><img data-src="${escapeHtml(assetUrl(item.cover.webpPath))}" alt="" loading="lazy" decoding="async"></picture>` : "";
     return `
     <button class="catalog-card" type="button" data-scene="${escapeHtml(item.id)}" aria-label="查看 ${escapeHtml(item.title)}">
-      <span class="catalog-cover" aria-hidden="true"><span class="catalog-landscape"></span>${cover}<span class="catalog-cover-number">${escapeHtml(item.id.slice(-2))}</span></span>
-      <span class="catalog-caption"><strong><small>${escapeHtml(item.city)}</small>${escapeHtml(item.title)}</strong><b>${escapeHtml(item.id.slice(-2))}</b></span>
+      <span class="catalog-cover" aria-hidden="true"><span class="catalog-landscape"></span>${cover}<span class="catalog-cover-number">${sceneNumber(item)}</span></span>
+      <span class="catalog-caption"><strong><small>${escapeHtml(item.city)}</small>${escapeHtml(item.title)}</strong><b>${sceneNumber(item)}</b></span>
     </button>`;
   }).join("");
 
@@ -49,12 +51,12 @@ function pageMarkup(scene: SceneDefinition, view: SceneView, theme: Theme): stri
     <div class="page">
       <header class="topbar">
         <a class="brand" href="./" aria-label="微缩山水首页"><span class="brand-mark">山</span><span class="brand-name">微缩山水<small>MINIATURE SHANSHUI</small></span></a>
-        <button class="catalog-trigger" id="catalog-open" type="button" aria-haspopup="dialog"><span>景观目录</span><span class="catalog-count">${scene.id.slice(-2)} / ${String(scenes.length).padStart(2, "0")}</span></button>
+        <button class="catalog-trigger" id="catalog-open" type="button" aria-haspopup="dialog"><span>景观目录</span><span class="catalog-count">${sceneNumber(scene)} / ${String(scenes.length).padStart(2, "0")}</span></button>
       </header>
 
       <main class="layout">
         <section class="intro" aria-labelledby="scene-title">
-          <p class="eyebrow">${escapeHtml(scene.eyebrow)} / ${escapeHtml(scene.id)}</p>
+          <p class="eyebrow">${escapeHtml(scene.eyebrow)} / ${sceneNumber(scene).padStart(3, "0")}</p>
           <h1 id="scene-title"><span class="title-line">${escapeHtml(scene.titleLines[0])}</span><span class="title-line">${escapeHtml(scene.titleLines[1])}</span></h1>
           <div class="intro-rule"></div>
           <p class="verse-label">原创题词</p>
@@ -63,8 +65,8 @@ function pageMarkup(scene: SceneDefinition, view: SceneView, theme: Theme): stri
 
         <section class="viewer" id="viewer" aria-label="${escapeHtml(scene.title)}模型展示区">
           <div class="viewer-surface" aria-hidden="true"></div>
-          <div class="viewer-corner"><strong class="swap-text" id="stage-title">${escapeHtml(stageLabel(scene, view, theme))}</strong><em>Miniature scene / ${escapeHtml(scene.id.slice(-2))}</em></div>
-          <span class="stage-watermark" aria-hidden="true">${escapeHtml(scene.id.slice(-2))}</span>
+          <div class="viewer-corner"><strong class="swap-text" id="stage-title">${escapeHtml(stageLabel(scene, view, theme))}</strong><em>Miniature scene / ${sceneNumber(scene)}</em></div>
+          <span class="stage-watermark" aria-hidden="true">${sceneNumber(scene)}</span>
           <div class="theme-switch" role="group" aria-label="光照模式">
             <span class="switch-glider" aria-hidden="true"></span>
             <button type="button" data-theme="day" aria-pressed="${theme === "day"}">日游</button>
@@ -93,7 +95,7 @@ function pageMarkup(scene: SceneDefinition, view: SceneView, theme: Theme): stri
         </section>
 
         <aside class="aside">
-          <div class="aside-top"><span class="thin"></span><span class="aside-index">${escapeHtml(scene.id.slice(-2))}</span><span class="aside-label">THE STORY</span><h2 class="swap-text" id="aside-title">${escapeHtml(scene.overviewTitle)}</h2></div>
+          <div class="aside-top"><span class="thin"></span><span class="aside-index">${sceneNumber(scene)}</span><span class="aside-label">THE STORY</span><h2 class="swap-text" id="aside-title">${escapeHtml(scene.overviewTitle)}</h2></div>
           <div class="aside-bottom"><button class="story-button" id="story-open" type="button"><span>${escapeHtml(scene.storyButtonLabel)}</span><span aria-hidden="true">↗</span></button></div>
         </aside>
       </main>
@@ -103,7 +105,7 @@ function pageMarkup(scene: SceneDefinition, view: SceneView, theme: Theme): stri
 
     <div class="drawer-backdrop" id="story-backdrop" aria-hidden="true">
       <section class="drawer-panel story-panel" role="dialog" aria-modal="true" aria-labelledby="story-title">
-        <div class="story-panel-head"><span>MINIATURE SHANSHUI / ${escapeHtml(scene.id)}</span><button class="story-close" id="story-close" type="button" aria-label="关闭故事">×</button></div>
+        <div class="story-panel-head"><span>MINIATURE SHANSHUI / ${sceneNumber(scene).padStart(3, "0")}</span><button class="story-close" id="story-close" type="button" aria-label="关闭故事">×</button></div>
         <h2 id="story-title">${escapeHtml(scene.title)}</h2>
         <p class="story-lead">${escapeHtml(scene.storyLead)}</p>
         ${story}

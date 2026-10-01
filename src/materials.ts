@@ -10,7 +10,7 @@ export function applyToonMaterials(model: Group): void {
   const convert = (source: MeshStandardMaterial): MeshToonMaterial => {
     let material = replacements.get(source);
     if (material) return material;
-    material = new MeshToonMaterial({ color: source.color.clone(), gradientMap: gradient, side: source.side });
+    material = new MeshToonMaterial({ color: source.color.clone(), gradientMap: gradient, side: source.side, vertexColors: source.vertexColors });
     material.color.multiplyScalar(0.9);
     material.name = `${source.name} | toon`;
     replacements.set(source, material);

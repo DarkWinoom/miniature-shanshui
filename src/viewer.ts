@@ -4,6 +4,7 @@ import {
   Box3,
   BufferGeometry,
   DirectionalLight,
+  Fog,
   Group,
   HemisphereLight,
   Material,
@@ -126,6 +127,8 @@ export class ModelViewer {
     this.theme = theme;
     this.water?.setTheme(theme);
     if (!this.definition) return;
+    const atmosphere = this.definition.atmosphere;
+    this.scene.fog = atmosphere ? new Fog(atmosphere.color[theme], atmosphere.near, atmosphere.far) : null;
     const profile = this.definition.lighting[theme];
     this.ambient.color.set(profile.ambient.color);
     this.ambient.intensity = profile.ambient.intensity;

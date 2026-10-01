@@ -36,6 +36,12 @@ export interface WaterProfile {
   color: Readonly<Record<Theme, string>>;
 }
 
+export interface AtmosphereProfile {
+  color: Readonly<Record<Theme, string>>;
+  near: number;
+  far: number;
+}
+
 export interface SceneDefinition {
   id: string;
   city: string;
@@ -50,6 +56,7 @@ export interface SceneDefinition {
   cover?: { avifPath: string; webpPath: string };
   materialTreatment?: "toon";
   water?: WaterProfile;
+  atmosphere?: AtmosphereProfile;
   shadowExclude: readonly string[];
   lighting: Readonly<Record<Theme, LightingProfile>>;
   nightFixtures?: readonly { position: readonly [number, number, number]; role: "accent" | "plaque"; viewId?: string }[];

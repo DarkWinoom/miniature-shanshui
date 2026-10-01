@@ -1,27 +1,30 @@
-import { BufferGeometry, Color, Float32BufferAttribute, Group, Matrix4, Mesh, PropertyBinding, ShaderMaterial, Vector3 } from "three";
+import { BufferGeometry, Color, Float32BufferAttribute, Group, Matrix4, Mesh, PropertyBinding, ShaderMaterial, UniformsLib, UniformsUtils, Vector3 } from "three";
 import { Reflector } from "three/addons/objects/Reflector.js";
 import type { Theme, WaterProfile } from "./scenes";
 
 const riverShader = {
   name: "Miniature river",
-  uniforms: {
+  uniforms: UniformsUtils.merge([UniformsLib.fog, {
     color: { value: new Color() },
     tDiffuse: { value: null },
     textureMatrix: { value: new Matrix4() },
     time: { value: 0 },
     sunlight: { value: 1 }
-  },
+  }]),
   vertexShader: `
     uniform mat4 textureMatrix;
     varying vec4 reflectionUv;
     varying vec3 worldPoint;
     #include <common>
     #include <logdepthbuf_pars_vertex>
+    #include <fog_pars_vertex>
     void main() {
       reflectionUv = textureMatrix * vec4(position, 1.0);
       worldPoint = (modelMatrix * vec4(position, 1.0)).xyz;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+      gl_Position = projectionMatrix * mvPosition;
       #include <logdepthbuf_vertex>
+      #include <fog_vertex>
     }
   `,
   fragmentShader: `
@@ -33,6 +36,7 @@ const riverShader = {
     varying vec3 worldPoint;
     #include <common>
     #include <logdepthbuf_pars_fragment>
+    #include <fog_pars_fragment>
     void main() {
       #include <logdepthbuf_fragment>
       vec2 p = worldPoint.xz;
@@ -56,6 +60,7 @@ const riverShader = {
       gl_FragColor = vec4(river, 1.0);
       #include <tonemapping_fragment>
       #include <colorspace_fragment>
+      #include <fog_fragment>
     }
   `
 };
@@ -105,6 +110,7 @@ export class SceneWater {
       multisample: 0
     });
     this.surface.name = "Miniature reflected water";
+    (this.surface.material as ShaderMaterial).fog = true;
     this.surface.rotation.x = -Math.PI / 2;
     this.surface.position.y = level + 0.008;
     model.add(this.surface);
