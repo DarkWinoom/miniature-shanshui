@@ -22,6 +22,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { assetUrl, type SceneDefinition, type SceneView, type Theme } from "./scenes";
 import { applyToonMaterials } from "./materials";
+import { SceneWater } from "./water";
 
 interface CameraTween {
   start: number;
@@ -47,6 +48,7 @@ export class ModelViewer {
   private readonly resizeObserver: ResizeObserver;
   private readonly reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   private model: Group | null = null;
+  private water: SceneWater | null = null;
   private definition: SceneDefinition | null = null;
   private view: SceneView | null = null;
   private theme: Theme = "day";
@@ -111,6 +113,7 @@ export class ModelViewer {
     this.model = gltf.scene;
     this.renderer.domElement.setAttribute("aria-label", `可拖动旋转的${definition.title}三维模型`);
     if (definition.materialTreatment === "toon") applyToonMaterials(this.model);
+    if (definition.water) this.water = new SceneWater(this.model, definition.water, this.host.clientWidth < 700);
     this.prepareSunShadow(definition);
     this.scene.add(this.model);
     this.placeNightLights();
@@ -121,6 +124,7 @@ export class ModelViewer {
 
   setTheme(theme: Theme): void {
     this.theme = theme;
+    this.water?.setTheme(theme);
     if (!this.definition) return;
     const profile = this.definition.lighting[theme];
     this.ambient.color.set(profile.ambient.color);
@@ -247,6 +251,7 @@ export class ModelViewer {
         if (progress === 1) this.tween = null;
       }
       this.controls.update(delta);
+      this.water?.update(delta, !this.reducedMotion.matches);
       this.renderer.render(this.scene, this.camera);
     }
     this.frameId = requestAnimationFrame(this.render);
@@ -329,6 +334,8 @@ export class ModelViewer {
 
   private disposeModel(): void {
     if (!this.model) return;
+    this.water?.dispose();
+    this.water = null;
     this.scene.remove(this.model);
     for (const { light } of this.nightLights) this.scene.remove(light);
     this.nightLights = [];

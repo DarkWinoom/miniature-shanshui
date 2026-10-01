@@ -31,6 +31,11 @@ export interface LightingProfile {
   exposure: number;
 }
 
+export interface WaterProfile {
+  nodeName: string;
+  color: Readonly<Record<Theme, string>>;
+}
+
 export interface SceneDefinition {
   id: string;
   city: string;
@@ -44,6 +49,7 @@ export interface SceneDefinition {
   modelPath: string;
   cover?: { avifPath: string; webpPath: string };
   materialTreatment?: "toon";
+  water?: WaterProfile;
   shadowExclude: readonly string[];
   lighting: Readonly<Record<Theme, LightingProfile>>;
   nightFixtures?: readonly { position: readonly [number, number, number]; role: "accent" | "plaque"; viewId?: string }[];
@@ -209,6 +215,85 @@ export const scenes: readonly SceneDefinition[] = [
     sources: [
       { label: "昆明信息港 · 大观楼历史建筑科普", url: "https://www.kunming.cn/news/c/2026-04-22/14035565.shtml" },
       { label: "昆明信息港 · 大观楼与长联文史报道", url: "https://www.kunming.cn/news/c/2022-08-11/13585378.shtml" }
+    ]
+  },
+  {
+    id: "003",
+    city: "苏州",
+    eyebrow: "水巷人家",
+    title: "周庄双桥",
+    titleLines: ["周庄", "双桥"],
+    verse: ["双桥连水巷，", "橹影过人家。"],
+    captions: { day: "水巷晴光", night: "灯映水巷" },
+    overviewTitle: "桥街相依",
+    storyButtonLabel: "走近周庄",
+    modelPath: "models/zhouzhuang-double-bridge.glb",
+    cover: { avifPath: "covers/zhouzhuang-double-bridge.avif", webpPath: "covers/zhouzhuang-double-bridge.webp" },
+    materialTreatment: "toon",
+    water: { nodeName: "ZHOUZHUANG | water", color: { day: "#4d817b", night: "#243f47" } },
+    shadowExclude: ["pedestal", "paving_detail", "roof_detail", "planting", "small_detail", "water"],
+    lighting: {
+      day: {
+        ambient: { color: "#fff6e9", intensity: 0.27 },
+        hemisphere: { sky: "#e7f0ef", ground: "#96a8a2", intensity: 0.62 },
+        key: { color: "#ffe8bf", intensity: 1.7, position: [-30, 35, 24], castShadow: true, shadowIntensity: 0.64 },
+        fill: { color: "#cbdde8", intensity: 0.36, position: [17, 12, -12] },
+        accent: { color: "#ffc38a", intensity: 0, distance: 19 },
+        plaque: { color: "#ffe1ab", intensity: 0, distance: 16 },
+        exposure: 0.93
+      },
+      night: {
+        ambient: { color: "#809bb0", intensity: 0.30 },
+        hemisphere: { sky: "#86a9c0", ground: "#263e47", intensity: 0.50 },
+        key: { color: "#8fb1ca", intensity: 0.26, position: [-30, 35, 24], castShadow: false, shadowIntensity: 0 },
+        fill: { color: "#a9bbc0", intensity: 0.25, position: [17, 12, -12] },
+        accent: { color: "#ffc38a", intensity: 18, distance: 19 },
+        plaque: { color: "#ffe1ab", intensity: 24, distance: 16 },
+        exposure: 1.02
+      }
+    },
+    nightFixtures: [
+      { position: [-4.5, 4.2, -8.3], role: "accent" },
+      { position: [4.3, 4.2, -11.6], role: "accent" },
+      { position: [-14.6, 4.2, 1.2], role: "accent" },
+      { position: [11.7, 4.2, 1.4], role: "accent" },
+      { position: [-4.5, 4.2, 12.7], role: "accent" },
+      { position: [15.1, 4.2, 7.2], role: "accent" },
+      { position: [0, 6.3, 0], role: "plaque" },
+      { position: [6.15, 5.2, 3.4], role: "plaque" }
+    ],
+    views: [
+      { id: "all", label: "街区", cameraOffset: [-0.8, 1.03, 1.13], targetOffset: [0, -1.4, 0], mobileTargetOffset: [0, -0.8, 0], distanceScale: 1.32 },
+      { id: "bridges", label: "双桥", cameraOffset: [0.22, 0.62, 1.05], targetOffset: [1.4, -1.1, 0.1], mobileTargetOffset: [1.4, -0.8, 0.1], distanceScale: 0.47 },
+      { id: "canal", label: "河巷", cameraOffset: [-0.12, 0.5, 1.2], targetOffset: [-0.3, -1.5, 5.5], mobileTargetOffset: [-0.3, -0.8, 5.5], distanceScale: 0.59 }
+    ],
+    storyLead: "两桥相接，水巷交汇。粉墙、灰瓦与临水人家，把周庄桥头的一段风景收进微缩街区。",
+    story: [
+      {
+        label: "01 / PLACE",
+        title: "水路与街巷",
+        body: "周庄位于江苏苏州昆山。河道与街巷共同组织着古镇的生活：宅院临水，店铺沿街，石阶通向水埠，舟船从桥下经过。沿河的民居与桥梁，构成了人们熟悉的江南水乡印象。"
+      },
+      {
+        label: "02 / BRIDGES",
+        title: "一圆一方",
+        body: "双桥由世德桥和永安桥组成，位于南北市河与银子浜的交汇处。世德桥为石拱桥，永安桥为石梁桥；两座桥的桥面相互垂直，桥洞一圆一方，相连的形状让人联想到旧时的钥匙。"
+      },
+      {
+        label: "03 / HISTORY",
+        title: "桥头岁月",
+        body: "两桥始建于明万历年间，此后历经修缮。二十世纪八十年代，画家陈逸飞以双桥为题材创作油画《故乡的回忆》，让这处水乡桥头被更多人认识。桥与民居仍是观看周庄的一处熟悉落点。"
+      },
+      {
+        label: "04 / MINIATURE",
+        title: "沿水巷走近",
+        body: "先看街区，再走近双桥与河巷：砌石、瓦片、木窗、石阶与船篷各有细节，水面映出桥影和灯光。模型以双桥为中心组织十栋民居，周边街巷和房屋为独立创作的水乡风貌概括，并非文物测绘复原。"
+      }
+    ],
+    sources: [
+      { label: "周庄旅游官网 · 双桥", url: "https://zhouzhuang.net/scenic_4/1257.html" },
+      { label: "昆山市人民政府 · 周庄古镇", url: "https://www.ks.gov.cn/kss/tsks/202112/e6157a6b261149879f8322af3980ee62.shtml" },
+      { label: "苏州市地方志办公室 · 周庄镇", url: "https://dfzb.suzhou.gov.cn/dfzb/szdq/201604/949ce3099ec640709af67935765015a8.shtml" }
     ]
   }
 ];

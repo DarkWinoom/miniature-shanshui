@@ -339,7 +339,7 @@ function mountScene(scene: SceneDefinition): void {
     panel.setAttribute("aria-hidden", "false");
     document.body.style.overflow = "hidden";
     requestAnimationFrame(() => {
-      if (drawer === panel) panel.querySelector<HTMLButtonElement>(".story-close")?.focus();
+      if (drawer === panel) panel.querySelector<HTMLButtonElement>(".story-close")?.focus({ preventScroll: true });
     });
   }
 
